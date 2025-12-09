@@ -515,158 +515,147 @@
     </div>
   </header>
 
+
+
   <main>
-    <section id="faucet">
-      <div class="hero-card">
-        <div class="hero-tag">
-          <span class="dot"></span>
-          <span>Hedera testnet · tUSDC faucet</span>
+  <section id="faucet">
+    <div class="hero-card">
+      <div class="hero-tag">
+        <span class="dot"></span>
+        <span>Hedera testnet · Community tUSDC faucet</span>
+      </div>
+
+      <h1 class="hero-title">Get Hedera Testnet USDC (tUSDC)</h1>
+
+      <p class="hero-lead">
+        This is an <strong>unofficial, developer-built faucet</strong> created to solve the
+        reliability gaps in the current testnet USDC tooling. It allows you to mint and
+        receive testnet USDC for integration, development, and debugging.  
+        You can request up to <strong>1000 tUSDC per day</strong> per address.
+      </p>
+
+      <p class="hero-lead" style="margin-top:6px;">
+        The full source code is public on GitHub so anyone can audit it, use it, or suggest improvements:  
+        <a href="https://github.com/EmmanuelHaggai/hedera-test-usdc-faucet" target="_blank" rel="noopener noreferrer" style="font-weight:600;">
+          github.com/EmmanuelHaggai/hedera-test-usdc-faucet
+        </a>
+      </p>
+
+      <div class="hero-meta-row">
+        <div class="pill">Token standard: Hedera Token Service (HTS)</div>
+        <div class="pill">Supports MetaMask + native account IDs</div>
+      </div>
+
+      <p class="hero-hbar-link">
+        Need test HBAR for gas?
+        <a href="https://portal.hedera.com/faucet" target="_blank" rel="noopener noreferrer">
+          Get HBAR from the official Hedera testnet faucet.
+        </a>
+      </p>
+
+      <div class="token-box" aria-label="Token details">
+        <div class="token-row">
+          <span class="label">Token name</span>
+          <span class="value">Hedera Testnet USDC</span>
         </div>
-        <h1 class="hero-title">Get Hedera Testnet USDC (tUSDC)</h1>
-        <p class="hero-lead">
-          Mint a test version of USDC on Hedera testnet and send it to your wallet.
-          You can request up to <strong>1000 tUSDC per day</strong> per address and use it to
-          build and test USDC integrations safely.
-        </p>
-
-        <div class="hero-meta-row">
-          <div class="pill">Token standard: Hedera Token Service (HTS)</div>
-          <div class="pill">Supports MetaMask + native account IDs</div>
+        <div class="token-row">
+          <span class="label">Symbol</span>
+          <span class="value">tUSDC</span>
         </div>
-
-        <p class="hero-hbar-link">
-          Need test HBAR for gas?
-          <a href="https://portal.hedera.com/faucet" target="_blank" rel="noopener noreferrer">
-            Get HBAR from the official Hedera testnet faucet.
-          </a>
-        </p>
-
-        <div class="token-box" aria-label="Token details">
-          <div class="token-row">
-            <span class="label">Token name</span>
-            <span class="value">Hedera Testnet USDC</span>
-          </div>
-          <div class="token-row">
-            <span class="label">Symbol</span>
-            <span class="value">tUSDC</span>
-          </div>
-          <div class="token-row">
-            <span class="label">Token ID (HTS)</span>
-            <span class="value">0.0.7352375</span>
-          </div>
-          <div class="token-row">
-            <span class="label">EVM address</span>
-            <span class="value">0x0000000000000000000000000000000000703037</span>
-          </div>
-          <div class="token-row">
-            <span class="label">Decimals</span>
-            <span class="value">6</span>
-          </div>
+        <div class="token-row">
+          <span class="label">Token ID (HTS)</span>
+          <span class="value">0.0.7352375</span>
         </div>
-
-        <div class="grid-two" style="margin-top:18px;">
-          <div class="card" aria-label="MetaMask connection and token association">
-            <h3>Step 1 · Connect & import tUSDC</h3>
-            <p>
-              Connect your MetaMask wallet, switch to Hedera testnet, and add the tUSDC token for display.
-              You can then send an on-chain association transaction so your account can receive tUSDC.
-            </p>
-
-            <div class="field-group">
-              <button id="connect-metamask-btn" class="btn btn-primary" type="button">
-                <span>Connect MetaMask</span>
-              </button>
-              <p id="metamask-status" class="status-text">MetaMask status: Not connected</p>
-            </div>
-
-            <div class="field-group">
-              <button id="import-token-btn" class="btn btn-secondary" type="button">
-                <span>Import tUSDC into MetaMask</span>
-              </button>
-              <p id="import-status" class="status-text"></p>
-            </div>
-
-            <div class="field-group">
-              <button id="associate-token-btn" class="btn btn-ghost" type="button">
-                <span>Associate tUSDC via MetaMask</span>
-              </button>
-              <p id="association-status" class="status-text"></p>
-            </div>
-          </div>
-
-          <div class="card" aria-label="Faucet request">
-            <h3>Step 2 · Request tUSDC from faucet</h3>
-            <p>
-              After your wallet is associated with tUSDC, request up to 1000 tUSDC per day for testing.
-            </p>
-
-            <div class="field-group">
-              <label for="recipient-input">Recipient address or account ID</label>
-              <input
-                type="text"
-                id="recipient-input"
-                placeholder="0xEvmAddress or 0.0.1234"
-                autocomplete="off"
-              >
-            </div>
-
-            <div class="field-group">
-              <label for="amount-input">Amount (max 1000 per request)</label>
-              <input
-                type="number"
-                id="amount-input"
-                value="1000"
-                min="1"
-                max="1000"
-                step="1"
-              >
-            </div>
-
-            <button id="request-faucet-btn" class="btn btn-primary" type="button">
-              <span>Request tUSDC</span>
-            </button>
-            <p id="faucet-status" class="status-text"></p>
-          </div>
+        <div class="token-row">
+          <span class="label">EVM address</span>
+          <span class="value">0x0000000000000000000000000000000000703037</span>
         </div>
-
-        <div class="card" style="margin-top:18px;" aria-label="Send tUSDC">
-          <h3>Step 3 · Send tUSDC to other accounts</h3>
-          <p>
-            Once your wallet is funded, you can send tUSDC from MetaMask either to another EVM address
-            or to a Hedera native account ID (for example <code>0.0.7054893</code>).
-          </p>
-          <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">
-            The recipient must also be associated with tUSDC before they can receive the tokens.
-          </p>
-
-          <div class="field-group">
-            <label for="send-to-input">Recipient (0x... or 0.0.x)</label>
-            <input
-              type="text"
-              id="send-to-input"
-              placeholder="0xRecipientAddress or 0.0.7054893"
-              autocomplete="off"
-            >
-          </div>
-
-          <div class="field-group">
-            <label for="send-amount-input">Amount of tUSDC to send</label>
-            <input
-              type="number"
-              id="send-amount-input"
-              value="10"
-              min="0"
-              step="0.000001"
-            >
-          </div>
-
-          <button id="send-token-btn" class="btn btn-secondary" type="button">
-            <span>Send tUSDC</span>
-          </button>
-          <p id="send-status" class="status-text"></p>
+        <div class="token-row">
+          <span class="label">Decimals</span>
+          <span class="value">6</span>
         </div>
       </div>
-    </section>
+
+      <div class="grid-two" style="margin-top:18px;">
+        <div class="card" aria-label="MetaMask connection and token association">
+          <h3>Step 1 · Connect & import tUSDC</h3>
+          <p>
+            Connect your MetaMask wallet, switch to Hedera testnet, and add the tUSDC token.
+            After importing, you can associate your account so it can receive tUSDC transfers.
+          </p>
+
+          <div class="field-group">
+            <button id="connect-metamask-btn" class="btn btn-primary" type="button">
+              <span>Connect MetaMask</span>
+            </button>
+            <p id="metamask-status" class="status-text">MetaMask status: Not connected</p>
+          </div>
+
+          <div class="field-group">
+            <button id="import-token-btn" class="btn btn-secondary" type="button">
+              <span>Import tUSDC into MetaMask</span>
+            </button>
+            <p id="import-status" class="status-text"></p>
+          </div>
+
+          <div class="field-group">
+            <button id="associate-token-btn" class="btn btn-ghost" type="button">
+              <span>Associate tUSDC via MetaMask</span>
+            </button>
+            <p id="association-status" class="status-text"></p>
+          </div>
+        </div>
+
+        <div class="card" aria-label="Faucet request">
+          <h3>Step 2 · Request tUSDC from faucet</h3>
+          <p>
+            Once associated, you can request up to 1000 tUSDC for testing Hedera-based USDC flows.
+          </p>
+
+          <div class="field-group">
+            <label for="recipient-input">Recipient address or account ID</label>
+            <input type="text" id="recipient-input" placeholder="0xEvmAddress or 0.0.1234" autocomplete="off">
+          </div>
+
+          <div class="field-group">
+            <label for="amount-input">Amount (max 1000 per request)</label>
+            <input type="number" id="amount-input" value="1000" min="1" max="1000" step="1">
+          </div>
+
+          <button id="request-faucet-btn" class="btn btn-primary" type="button">
+            <span>Request tUSDC</span>
+          </button>
+          <p id="faucet-status" class="status-text"></p>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px;" aria-label="Send tUSDC">
+        <h3>Step 3 · Send tUSDC to other accounts</h3>
+        <p>
+          After receiving tUSDC, you can test transfers to any EVM address or a Hedera account ID,
+          such as <code>0.0.7054893</code>.
+        </p>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:10px;">
+          The receiving account must also be associated with tUSDC.
+        </p>
+
+        <div class="field-group">
+          <label for="send-to-input">Recipient (0x... or 0.0.x)</label>
+          <input type="text" id="send-to-input" placeholder="0xRecipientAddress or 0.0.7054893" autocomplete="off">
+        </div>
+
+        <div class="field-group">
+          <label for="send-amount-input">Amount of tUSDC to send</label>
+          <input type="number" id="send-amount-input" value="10" min="0" step="0.000001">
+        </div>
+
+        <button id="send-token-btn" class="btn btn-secondary" type="button">
+          <span>Send tUSDC</span>
+        </button>
+        <p id="send-status" class="status-text"></p>
+      </div>
+    </div>
+  </section>
 
     <aside class="sidebar">
        <!-- Docs + Hedera Portal import instructions -->
@@ -813,6 +802,11 @@
 
     </aside>
   </main>
+
+
+
+
+
 
   <footer>
     Hedera Test USDC Faucet · For development only · When you are ready for production,
