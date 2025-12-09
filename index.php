@@ -481,6 +481,15 @@
     }
 
     footer a { color: var(--muted); }
+
+    /* Mobile btn enhancement */
+    @media (max-width: 640px) {
+      .btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
   </style>
 </head>
 <body>
@@ -811,398 +820,465 @@
   </footer>
 
   <script>
-    const HEDERA_TESTNET_CHAIN_ID = "0x128";
-    const HEDERA_RPC_URL = "https://testnet.hashio.io/api";
-    const HEDERA_EXPLORER_URL = "https://hashscan.io/testnet";
+  const HEDERA_TESTNET_CHAIN_ID = "0x128";
+  const HEDERA_RPC_URL = "https://testnet.hashio.io/api";
+  const HEDERA_EXPLORER_URL = "https://hashscan.io/testnet";
 
-    const TOKEN_ADDRESS = "0x0000000000000000000000000000000000703037";
-    const TOKEN_SYMBOL = "tUSDC";
-    const TOKEN_DECIMALS = 6;
+  const TOKEN_ADDRESS = "0x0000000000000000000000000000000000703037";
+  const TOKEN_SYMBOL = "tUSDC";
+  const TOKEN_DECIMALS = 6;
 
-    const IMPORT_FLAG_KEY =
-      "tusdc_imported_" + HEDERA_TESTNET_CHAIN_ID + "_" + TOKEN_ADDRESS.toLowerCase();
+  const IMPORT_FLAG_KEY =
+    "tusdc_imported_" + HEDERA_TESTNET_CHAIN_ID + "_" + TOKEN_ADDRESS.toLowerCase();
 
-    const connectBtn = document.getElementById("connect-metamask-btn");
-    const metamaskStatus = document.getElementById("metamask-status");
-    const recipientInput = document.getElementById("recipient-input");
-    const amountInput = document.getElementById("amount-input");
-    const requestBtn = document.getElementById("request-faucet-btn");
-    const faucetStatus = document.getElementById("faucet-status");
+  // Mobile detection and MetaMask deep link
+  const IS_IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent || "");
+  const IS_ANDROID = /Android/i.test(navigator.userAgent || "");
+  const IS_MOBILE = IS_IOS || IS_ANDROID;
+  const BASE_DAPP_URL = window.location.href.split("#")[0].replace(/^https?:\/\//, "");
+  const METAMASK_DEEPLINK = "https://metamask.app.link/dapp/" + BASE_DAPP_URL;
 
-    const importBtn = document.getElementById("import-token-btn");
-    const importStatus = document.getElementById("import-status");
+  const connectBtn = document.getElementById("connect-metamask-btn");
+  const metamaskStatus = document.getElementById("metamask-status");
+  const recipientInput = document.getElementById("recipient-input");
+  const amountInput = document.getElementById("amount-input");
+  const requestBtn = document.getElementById("request-faucet-btn");
+  const faucetStatus = document.getElementById("faucet-status");
 
-    const associateBtn = document.getElementById("associate-token-btn");
-    const associationStatus = document.getElementById("association-status");
+  const importBtn = document.getElementById("import-token-btn");
+  const importStatus = document.getElementById("import-status");
 
-    const sendBtn = document.getElementById("send-token-btn");
-    const sendToInput = document.getElementById("send-to-input");
-    const sendAmountInput = document.getElementById("send-amount-input");
-    const sendStatus = document.getElementById("send-status");
+  const associateBtn = document.getElementById("associate-token-btn");
+  const associationStatus = document.getElementById("association-status");
 
-    let connectedAddress = null;
+  const sendBtn = document.getElementById("send-token-btn");
+  const sendToInput = document.getElementById("send-to-input");
+  const sendAmountInput = document.getElementById("send-amount-input");
+  const sendStatus = document.getElementById("send-status");
 
-    function setButtonLoading(button, loading, labelWhenIdle) {
-      if (!button) return;
-      button.disabled = loading;
-      if (loading) {
-        button.dataset.label = labelWhenIdle || button.textContent.trim();
-        button.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Working...</span>';
-      } else {
-        const original = button.dataset.label || labelWhenIdle || button.textContent.trim();
-        button.innerHTML = "<span>" + original + "</span>";
+  let connectedAddress = null;
+
+  function setButtonLoading(button, loading, labelWhenIdle) {
+    if (!button) return;
+    button.disabled = loading;
+    if (loading) {
+      button.dataset.label = labelWhenIdle || button.textContent.trim();
+      button.innerHTML = '<span class="spinner" aria-hidden="true"></span><span>Working...</span>';
+    } else {
+      const original = button.dataset.label || labelWhenIdle || button.textContent.trim();
+      button.innerHTML = "<span>" + original + "</span>";
+    }
+  }
+
+  // Optional: give a hint on mobile if MetaMask is not injected
+  document.addEventListener("DOMContentLoaded", function () {
+    if (IS_MOBILE && !window.ethereum && metamaskStatus) {
+      metamaskStatus.textContent =
+        "On mobile, open this page from the MetaMask in app browser, or tap Connect to open MetaMask.";
+      metamaskStatus.className = "status-text";
+    }
+  });
+
+  async function ensureHederaNetwork() {
+    if (!window.ethereum) {
+      if (IS_MOBILE) {
+        throw new Error(
+          "MetaMask provider not available. Open this page in the MetaMask in app browser."
+        );
       }
+      throw new Error("MetaMask not detected.");
     }
 
-    async function ensureHederaNetwork() {
-      if (!window.ethereum) {
-        throw new Error("MetaMask not detected.");
-      }
-
-      try {
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: HEDERA_TESTNET_CHAIN_ID }]
+      });
+    } catch (switchError) {
+      if (switchError.code === 4902) {
         await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: HEDERA_TESTNET_CHAIN_ID }]
+          method: "wallet_addEthereumChain",
+          params: [{
+            chainId: HEDERA_TESTNET_CHAIN_ID,
+            rpcUrls: [HEDERA_RPC_URL],
+            chainName: "Hedera Testnet",
+            nativeCurrency: {
+              name: "HBAR",
+              symbol: "HBAR",
+              decimals: 18
+            },
+            blockExplorerUrls: [HEDERA_EXPLORER_URL]
+          }]
         });
-      } catch (switchError) {
-        if (switchError.code === 4902) {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [{
-              chainId: HEDERA_TESTNET_CHAIN_ID,
-              rpcUrls: [HEDERA_RPC_URL],
-              chainName: "Hedera Testnet",
-              nativeCurrency: {
-                name: "HBAR",
-                symbol: "HBAR",
-                decimals: 18
-              },
-              blockExplorerUrls: [HEDERA_EXPLORER_URL]
-            }]
-          });
-        } else {
-          throw switchError;
-        }
+      } else {
+        throw switchError;
       }
     }
+  }
 
-    async function connectMetaMask() {
-      if (!window.ethereum) {
-        metamaskStatus.textContent = "MetaMask status: Not detected. Please install MetaMask.";
+  async function connectMetaMask() {
+    if (!window.ethereum) {
+      if (IS_MOBILE) {
+        metamaskStatus.textContent =
+          "Opening MetaMask. If it does not open, install MetaMask and open this page from its browser.";
+        metamaskStatus.className = "status-text";
+        window.location.href = METAMASK_DEEPLINK;
+      } else {
+        metamaskStatus.textContent =
+          "MetaMask status: Not detected. Please install the MetaMask browser extension and reload.";
+        metamaskStatus.className = "status-text error";
+      }
+      return;
+    }
+
+    setButtonLoading(connectBtn, true, "Connect MetaMask");
+    metamaskStatus.textContent = "Connecting to MetaMask...";
+    metamaskStatus.className = "status-text";
+
+    try {
+      await ensureHederaNetwork();
+
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts"
+      });
+
+      if (!accounts || accounts.length === 0) {
+        metamaskStatus.textContent = "MetaMask status: No accounts found.";
         metamaskStatus.className = "status-text error";
         return;
       }
 
-      setButtonLoading(connectBtn, true, "Connect MetaMask");
-      metamaskStatus.textContent = "Connecting to MetaMask...";
-      metamaskStatus.className = "status-text";
+      connectedAddress = accounts[0];
+      metamaskStatus.textContent = "MetaMask status: Connected as " + connectedAddress;
+      metamaskStatus.className = "status-text success";
+      recipientInput.value = connectedAddress;
 
-      try {
-        await ensureHederaNetwork();
+      const chainId = await window.ethereum.request({ method: "eth_chainId" });
+      console.log("Connected chainId:", chainId);
 
-        const accounts = await window.ethereum.request({
-          method: "eth_requestAccounts"
-        });
-
-        if (!accounts || accounts.length === 0) {
-          metamaskStatus.textContent = "MetaMask status: No accounts found.";
-          metamaskStatus.className = "status-text error";
-          return;
-        }
-
-        connectedAddress = accounts[0];
-        metamaskStatus.textContent = "MetaMask status: Connected as " + connectedAddress;
-        metamaskStatus.className = "status-text success";
-        recipientInput.value = connectedAddress;
-
-        const chainId = await window.ethereum.request({ method: "eth_chainId" });
-        console.log("Connected chainId:", chainId);
-      } catch (err) {
-        console.error(err);
-        metamaskStatus.textContent = "MetaMask status: Error - " + (err.message || err);
-        metamaskStatus.className = "status-text error";
-      } finally {
-        setButtonLoading(connectBtn, false, "Connect MetaMask");
-      }
-    }
-
-    async function addTokenToMetaMask() {
-      if (!window.ethereum) {
-        importStatus.textContent = "MetaMask not detected.";
-        importStatus.className = "status-text error";
-        return false;
-      }
-
-      if (localStorage.getItem(IMPORT_FLAG_KEY) === "1") {
-        importStatus.textContent =
-          "tUSDC already imported in this browser for Hedera Testnet.";
-        importStatus.className = "status-text success";
-        return true;
-      }
-
-      setButtonLoading(importBtn, true, "Import tUSDC into MetaMask");
-      importStatus.textContent = "Opening MetaMask to add token...";
-      importStatus.className = "status-text";
-
-      try {
-        const wasAdded = await window.ethereum.request({
-          method: "wallet_watchAsset",
-          params: {
-            type: "ERC20",
-            options: {
-              address: TOKEN_ADDRESS,
-              symbol: TOKEN_SYMBOL,
-              decimals: TOKEN_DECIMALS
+      if (typeof window.ethereum.on === "function") {
+        window.ethereum.on("accountsChanged", (accs) => {
+          if (accs && accs.length > 0) {
+            connectedAddress = accs[0];
+            metamaskStatus.textContent =
+              "MetaMask status: Connected as " + connectedAddress;
+            metamaskStatus.className = "status-text success";
+            if (!recipientInput.value) {
+              recipientInput.value = connectedAddress;
             }
+          } else {
+            connectedAddress = null;
+            metamaskStatus.textContent = "MetaMask status: Disconnected.";
+            metamaskStatus.className = "status-text";
           }
         });
 
-        if (wasAdded) {
-          importStatus.textContent =
-            "tUSDC imported into MetaMask (display only). You still need to associate it on Hedera.";
-          importStatus.className = "status-text success";
-          localStorage.setItem(IMPORT_FLAG_KEY, "1");
-          return true;
-        } else {
-          importStatus.textContent =
-            "tUSDC import was rejected or failed in MetaMask.";
-          importStatus.className = "status-text error";
-          return false;
-        }
-      } catch (err) {
-        console.error(err);
-        importStatus.textContent = "Error importing token: " + (err.message || err);
-        importStatus.className = "status-text error";
-        return false;
-      } finally {
-        setButtonLoading(importBtn, false, "Import tUSDC into MetaMask");
-      }
-    }
-
-    async function associateTokenViaMetaMask() {
-      if (!window.ethereum) {
-        associationStatus.textContent = "MetaMask not detected.";
-        associationStatus.className = "status-text error";
-        return;
-      }
-
-      if (!connectedAddress) {
-        associationStatus.textContent = "Connect MetaMask first.";
-        associationStatus.className = "status-text error";
-        return;
-      }
-
-      setButtonLoading(associateBtn, true, "Associate tUSDC via MetaMask");
-      associationStatus.textContent = "Preparing association transaction...";
-      associationStatus.className = "status-text";
-
-      try {
-        await ensureHederaNetwork();
-
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        await provider.send("eth_requestAccounts", []);
-        const signer = await provider.getSigner();
-
-        const tokenAssociateAbi = ["function associate()"];
-        const tokenContract = new ethers.Contract(
-          TOKEN_ADDRESS,
-          tokenAssociateAbi,
-          signer
-        );
-
-        const tx = await tokenContract.associate({ gasLimit: 800000 });
-        associationStatus.textContent = "Association tx sent: " + tx.hash;
-        associationStatus.className = "status-text";
-
-        const receipt = await tx.wait();
-        associationStatus.textContent =
-          "Association confirmed in block " + receipt.blockNumber + ".";
-        associationStatus.className = "status-text success";
-      } catch (err) {
-        console.error(err);
-        associationStatus.textContent =
-          "Error associating tUSDC: " + (err.message || err);
-        associationStatus.className = "status-text error";
-      } finally {
-        setButtonLoading(associateBtn, false, "Associate tUSDC via MetaMask");
-      }
-    }
-
-    async function requestFaucet() {
-      const address = recipientInput.value.trim();
-      let amount = parseInt(amountInput.value, 10);
-
-      if (!address) {
-        faucetStatus.textContent =
-          "Please provide a wallet address or Hedera account ID.";
-        faucetStatus.className = "status-text error";
-        return;
-      }
-
-      if (isNaN(amount) || amount <= 0) {
-        faucetStatus.textContent = "Please provide a valid amount.";
-        faucetStatus.className = "status-text error";
-        return;
-      }
-
-      if (amount > 1000) {
-        amount = 1000;
-        amountInput.value = "1000";
-      }
-
-      setButtonLoading(requestBtn, true, "Request tUSDC");
-      faucetStatus.textContent = "Sending request to faucet...";
-      faucetStatus.className = "status-text";
-
-      try {
-        const res = await fetch("/api/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address, amount })
+        window.ethereum.on("chainChanged", () => {
+          window.location.reload();
         });
-
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok) {
-          const errorText = data.error || "Faucet request failed.";
-          faucetStatus.textContent = "Error: " + errorText;
-          faucetStatus.className = "status-text error";
-          return;
-        }
-
-        let msg = "Success! " + amount + " tUSDC requested for " + address + ".";
-        if (data.txId) {
-          msg += " Tx: " + data.txId;
-        }
-        if (data.explorerUrl) {
-          msg += " You can view it here: " + data.explorerUrl;
-        }
-        faucetStatus.textContent = msg;
-        faucetStatus.className = "status-text success";
-      } catch (err) {
-        console.error(err);
-        faucetStatus.textContent =
-          "Error calling faucet: " + (err.message || err);
-        faucetStatus.className = "status-text error";
-      } finally {
-        setButtonLoading(requestBtn, false, "Request tUSDC");
       }
+    } catch (err) {
+      console.error(err);
+      metamaskStatus.textContent = "MetaMask status: Error - " + (err.message || err);
+      metamaskStatus.className = "status-text error";
+    } finally {
+      setButtonLoading(connectBtn, false, "Connect MetaMask");
+    }
+  }
+
+  async function addTokenToMetaMask() {
+    if (!window.ethereum) {
+      if (IS_MOBILE) {
+        importStatus.textContent =
+          "Open this page inside the MetaMask browser, then tap Import token.";
+      } else {
+        importStatus.textContent = "MetaMask not detected.";
+      }
+      importStatus.className = "status-text error";
+      return false;
     }
 
-    async function resolveNativeToEvm(nativeId) {
-      const res = await fetch("/api/resolve-account.php", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountId: nativeId }),
+    if (localStorage.getItem(IMPORT_FLAG_KEY) === "1") {
+      importStatus.textContent =
+        "tUSDC already imported in this browser for Hedera Testnet.";
+      importStatus.className = "status-text success";
+      return true;
+    }
+
+    setButtonLoading(importBtn, true, "Import tUSDC into MetaMask");
+    importStatus.textContent = "Opening MetaMask to add token...";
+    importStatus.className = "status-text";
+
+    try {
+      const wasAdded = await window.ethereum.request({
+        method: "wallet_watchAsset",
+        params: {
+          type: "ERC20",
+          options: {
+            address: TOKEN_ADDRESS,
+            symbol: TOKEN_SYMBOL,
+            decimals: TOKEN_DECIMALS
+          }
+        }
       });
 
-      const text = await res.text();
-      let data = {};
-      try {
-        data = JSON.parse(text);
-      } catch (e) {
-        console.error("resolve-account JSON parse error:", e, "raw:", text);
-        throw new Error("Resolve endpoint returned invalid JSON");
+      if (wasAdded) {
+        importStatus.textContent =
+          "tUSDC imported into MetaMask (display only). You still need to associate it on Hedera.";
+        importStatus.className = "status-text success";
+        localStorage.setItem(IMPORT_FLAG_KEY, "1");
+        return true;
+      } else {
+        importStatus.textContent =
+          "tUSDC import was rejected or failed in MetaMask.";
+        importStatus.className = "status-text error";
+        return false;
+      }
+    } catch (err) {
+      console.error(err);
+      importStatus.textContent = "Error importing token: " + (err.message || err);
+      importStatus.className = "status-text error";
+      return false;
+    } finally {
+      setButtonLoading(importBtn, false, "Import tUSDC into MetaMask");
+    }
+  }
+
+  async function associateTokenViaMetaMask() {
+    if (!window.ethereum) {
+      if (IS_MOBILE) {
+        associationStatus.textContent =
+          "Open this page in the MetaMask in app browser before associating.";
+      } else {
+        associationStatus.textContent = "MetaMask not detected.";
+      }
+      associationStatus.className = "status-text error";
+      return;
+    }
+
+    if (!connectedAddress) {
+      associationStatus.textContent = "Connect MetaMask first.";
+      associationStatus.className = "status-text error";
+      return;
+    }
+
+    setButtonLoading(associateBtn, true, "Associate tUSDC via MetaMask");
+    associationStatus.textContent = "Preparing association transaction...";
+    associationStatus.className = "status-text";
+
+    try {
+      await ensureHederaNetwork();
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = await provider.getSigner();
+
+      const tokenAssociateAbi = ["function associate()"];
+      const tokenContract = new ethers.Contract(
+        TOKEN_ADDRESS,
+        tokenAssociateAbi,
+        signer
+      );
+
+      const tx = await tokenContract.associate({ gasLimit: 800000 });
+      associationStatus.textContent = "Association tx sent: " + tx.hash;
+      associationStatus.className = "status-text";
+
+      const receipt = await tx.wait();
+      associationStatus.textContent =
+        "Association confirmed in block " + receipt.blockNumber + ".";
+      associationStatus.className = "status-text success";
+    } catch (err) {
+      console.error(err);
+      associationStatus.textContent =
+        "Error associating tUSDC: " + (err.message || err);
+      associationStatus.className = "status-text error";
+    } finally {
+      setButtonLoading(associateBtn, false, "Associate tUSDC via MetaMask");
+    }
+  }
+
+  async function requestFaucet() {
+    const address = recipientInput.value.trim();
+    let amount = parseInt(amountInput.value, 10);
+
+    if (!address) {
+      faucetStatus.textContent =
+        "Please provide a wallet address or Hedera account ID.";
+      faucetStatus.className = "status-text error";
+      return;
+    }
+
+    if (isNaN(amount) || amount <= 0) {
+      faucetStatus.textContent = "Please provide a valid amount.";
+      faucetStatus.className = "status-text error";
+      return;
+    }
+
+    if (amount > 1000) {
+      amount = 1000;
+      amountInput.value = "1000";
+    }
+
+    setButtonLoading(requestBtn, true, "Request tUSDC");
+    faucetStatus.textContent = "Sending request to faucet...";
+    faucetStatus.className = "status-text";
+
+    try {
+      const res = await fetch("/api/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address, amount })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const errorText = data.error || "Faucet request failed.";
+        faucetStatus.textContent = "Error: " + errorText;
+        faucetStatus.className = "status-text error";
+        return;
       }
 
-      console.log("resolve-account response:", res.status, data);
-
-      if (!res.ok || !data.ok || !data.evmAddress) {
-        throw new Error(data.error || "Failed to resolve Hedera account ID");
+      let msg = "Success! " + amount + " tUSDC requested for " + address + ".";
+      if (data.txId) {
+        msg += " Tx: " + data.txId;
       }
+      if (data.explorerUrl) {
+        msg += " You can view it here: " + data.explorerUrl;
+      }
+      faucetStatus.textContent = msg;
+      faucetStatus.className = "status-text success";
+    } catch (err) {
+      console.error(err);
+      faucetStatus.textContent =
+        "Error calling faucet: " + (err.message || err);
+      faucetStatus.className = "status-text error";
+    } finally {
+      setButtonLoading(requestBtn, false, "Request tUSDC");
+    }
+  }
 
-      return data.evmAddress;
+  async function resolveNativeToEvm(nativeId) {
+    const res = await fetch("/api/resolve-account.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accountId: nativeId }),
+    });
+
+    const text = await res.text();
+    let data = {};
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("resolve-account JSON parse error:", e, "raw:", text);
+      throw new Error("Resolve endpoint returned invalid JSON");
     }
 
-    function isNativeAccountId(value) {
-      return /^\d+\.\d+\.\d+$/.test(value.trim());
+    console.log("resolve-account response:", res.status, data);
+
+    if (!res.ok || !data.ok || !data.evmAddress) {
+      throw new Error(data.error || "Failed to resolve Hedera account ID");
     }
 
-    function isEvmAddress(value) {
-      return /^0x[0-9a-fA-F]{40}$/.test(value.trim());
-    }
+    return data.evmAddress;
+  }
 
-    async function sendToken() {
-      if (!window.ethereum) {
+  function isNativeAccountId(value) {
+    return /^\d+\.\d+\.\d+$/.test(value.trim());
+  }
+
+  function isEvmAddress(value) {
+    return /^0x[0-9a-fA-F]{40}$/.test(value.trim());
+  }
+
+  async function sendToken() {
+    if (!window.ethereum) {
+      if (IS_MOBILE) {
+        sendStatus.textContent =
+          "Open this page from the MetaMask browser to send tokens.";
+      } else {
         sendStatus.textContent = "MetaMask not detected.";
+      }
+      sendStatus.className = "status-text error";
+      return;
+    }
+
+    if (!connectedAddress) {
+      sendStatus.textContent = "Connect MetaMask first.";
+      sendStatus.className = "status-text error";
+      return;
+    }
+
+    let to = sendToInput.value.trim();
+    const amountStr = sendAmountInput.value.trim();
+
+    if (!to) {
+      sendStatus.textContent = "Please enter a recipient address or account ID.";
+      sendStatus.className = "status-text error";
+      return;
+    }
+
+    if (!amountStr || isNaN(parseFloat(amountStr)) || parseFloat(amountStr) <= 0) {
+      sendStatus.textContent = "Please enter a valid amount.";
+      sendStatus.className = "status-text error";
+      return;
+    }
+
+    setButtonLoading(sendBtn, true, "Send tUSDC");
+    sendStatus.textContent = "Preparing transfer transaction...";
+    sendStatus.className = "status-text";
+
+    try {
+      await ensureHederaNetwork();
+
+      if (isNativeAccountId(to)) {
+        sendStatus.textContent = "Resolving Hedera account ID to EVM address...";
+        sendStatus.className = "status-text";
+        to = await resolveNativeToEvm(to);
+      }
+
+      if (!isEvmAddress(to)) {
+        sendStatus.textContent =
+          "Recipient must be a valid EVM address (0x...) or native 0.0.x account ID.";
         sendStatus.className = "status-text error";
         return;
       }
 
-      if (!connectedAddress) {
-        sendStatus.textContent = "Connect MetaMask first.";
-        sendStatus.className = "status-text error";
-        return;
-      }
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
 
-      let to = sendToInput.value.trim();
-      const amountStr = sendAmountInput.value.trim();
+      const erc20Abi = [
+        "function transfer(address to, uint256 amount) public returns (bool)"
+      ];
 
-      if (!to) {
-        sendStatus.textContent = "Please enter a recipient address or account ID.";
-        sendStatus.className = "status-text error";
-        return;
-      }
+      const contract = new ethers.Contract(TOKEN_ADDRESS, erc20Abi, signer);
+      const amountWei = ethers.parseUnits(amountStr, TOKEN_DECIMALS);
 
-      if (!amountStr || isNaN(parseFloat(amountStr)) || parseFloat(amountStr) <= 0) {
-        sendStatus.textContent = "Please enter a valid amount.";
-        sendStatus.className = "status-text error";
-        return;
-      }
-
-      setButtonLoading(sendBtn, true, "Send tUSDC");
-      sendStatus.textContent = "Preparing transfer transaction...";
+      const tx = await contract.transfer(to, amountWei);
+      sendStatus.textContent = "Transfer tx sent: " + tx.hash;
       sendStatus.className = "status-text";
 
-      try {
-        await ensureHederaNetwork();
-
-        if (isNativeAccountId(to)) {
-          sendStatus.textContent = "Resolving Hedera account ID to EVM address...";
-          sendStatus.className = "status-text";
-          to = await resolveNativeToEvm(to);
-        }
-
-        if (!isEvmAddress(to)) {
-          sendStatus.textContent =
-            "Recipient must be a valid EVM address (0x...) or native 0.0.x account ID.";
-          sendStatus.className = "status-text error";
-          return;
-        }
-
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const signer = await provider.getSigner();
-
-        const erc20Abi = [
-          "function transfer(address to, uint256 amount) public returns (bool)"
-        ];
-
-        const contract = new ethers.Contract(TOKEN_ADDRESS, erc20Abi, signer);
-        const amountWei = ethers.parseUnits(amountStr, TOKEN_DECIMALS);
-
-        const tx = await contract.transfer(to, amountWei);
-        sendStatus.textContent = "Transfer tx sent: " + tx.hash;
-        sendStatus.className = "status-text";
-
-        const receipt = await tx.wait();
-        sendStatus.textContent =
-          "Transfer confirmed in block " + receipt.blockNumber + ".";
-        sendStatus.className = "status-text success";
-      } catch (err) {
-        console.error(err);
-        sendStatus.textContent =
-          "Error sending tUSDC: " + (err.message || err);
-        sendStatus.className = "status-text error";
-      } finally {
-        setButtonLoading(sendBtn, false, "Send tUSDC");
-      }
+      const receipt = await tx.wait();
+      sendStatus.textContent =
+        "Transfer confirmed in block " + receipt.blockNumber + ".";
+      sendStatus.className = "status-text success";
+    } catch (err) {
+      console.error(err);
+      sendStatus.textContent =
+        "Error sending tUSDC: " + (err.message || err);
+      sendStatus.className = "status-text error";
+    } finally {
+      setButtonLoading(sendBtn, false, "Send tUSDC");
     }
+  }
 
-    connectBtn.addEventListener("click", connectMetaMask);
-    importBtn.addEventListener("click", addTokenToMetaMask);
-    associateBtn.addEventListener("click", associateTokenViaMetaMask);
-    requestBtn.addEventListener("click", requestFaucet);
-    sendBtn.addEventListener("click", sendToken);
-  </script>
+  connectBtn.addEventListener("click", connectMetaMask);
+  importBtn.addEventListener("click", addTokenToMetaMask);
+  associateBtn.addEventListener("click", associateTokenViaMetaMask);
+  requestBtn.addEventListener("click", requestFaucet);
+  sendBtn.addEventListener("click", sendToken);
+</script>
+
 </body>
 </html>
