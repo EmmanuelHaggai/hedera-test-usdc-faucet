@@ -351,6 +351,13 @@
       font-weight: 500;
     }
 
+    .btn-danger {
+      background: rgba(248,113,113,0.14);
+      border: 1px solid rgba(248,113,113,0.55);
+      color: #fecaca;
+      font-weight: 600;
+    }
+
     .btn:hover:not(:disabled) {
       transform: translateY(-1px);
       filter: brightness(1.05);
@@ -375,7 +382,8 @@
     }
 
     .btn-secondary .spinner,
-    .btn-ghost .spinner {
+    .btn-ghost .spinner,
+    .btn-danger .spinner {
       border-color: rgba(148,163,184,0.35);
       border-top-color: var(--accent);
       border-right-color: var(--accent);
@@ -515,8 +523,6 @@
     </div>
   </header>
 
-
-
   <main>
   <section id="faucet">
     <div class="hero-card">
@@ -588,6 +594,12 @@
             <button id="connect-metamask-btn" class="btn btn-primary" type="button">
               <span>Connect MetaMask</span>
             </button>
+
+            <!-- NEW: Disconnect button -->
+            <button id="disconnect-metamask-btn" class="btn btn-danger" type="button" style="display:none;">
+              <span>Disconnect MetaMask</span>
+            </button>
+
             <p id="metamask-status" class="status-text">MetaMask status: Not connected</p>
           </div>
 
@@ -658,7 +670,6 @@
   </section>
 
     <aside class="sidebar">
-       <!-- Docs + Hedera Portal import instructions -->
       <div id="docs" class="side-card">
         <h3>Import your Hedera testnet account into MetaMask</h3>
         <p>
@@ -696,11 +707,8 @@
             You can now use this faucet and MetaMask with the same account ID you see in the Portal.
           </li>
         </ol>
-
       </div>
 
-
-      <!-- Detailed go-live section -->
       <div id="golive" class="side-card">
         <span class="badge">
           <span class="badge-dot"></span>
@@ -722,7 +730,6 @@
               View on HashScan
             </a>
           </li>
-
         </ul>
 
         <h4 style="font-size:14px;margin:8px 0 4px;">2. Apply for Circle Mint on Hedera</h4>
@@ -796,17 +803,8 @@
           <span>Open Circle Hedera page</span>
         </button>
       </div>
-
-  
-
-
     </aside>
   </main>
-
-
-
-
-
 
   <footer>
     Hedera Test USDC Faucet · For development only · When you are ready for production,
@@ -833,6 +831,7 @@
   const METAMASK_DEEPLINK = "https://metamask.app.link/dapp/" + BASE_DAPP_URL;
 
   const connectBtn = document.getElementById("connect-metamask-btn");
+  const disconnectBtn = document.getElementById("disconnect-metamask-btn"); // NEW
   const metamaskStatus = document.getElementById("metamask-status");
   const recipientInput = document.getElementById("recipient-input");
   const amountInput = document.getElementById("amount-input");
@@ -862,6 +861,26 @@
       const original = button.dataset.label || labelWhenIdle || button.textContent.trim();
       button.innerHTML = "<span>" + original + "</span>";
     }
+  }
+
+  function setConnectionUi(isConnected) {
+    if (!connectBtn || !disconnectBtn) return;
+    connectBtn.style.display = isConnected ? "none" : "inline-flex";
+    disconnectBtn.style.display = isConnected ? "inline-flex" : "none";
+  }
+
+  function disconnectMetaMask() {
+    // Note: MetaMask does not allow programmatic “disconnect” from a dapp.
+    // This clears your dapp state and updates the UI.
+    connectedAddress = null;
+
+    if (recipientInput) recipientInput.value = "";
+    if (metamaskStatus) {
+      metamaskStatus.textContent = "MetaMask status: Disconnected (cleared on this site).";
+      metamaskStatus.className = "status-text";
+    }
+
+    setConnectionUi(false);
   }
 
   // Optional: give a hint on mobile if MetaMask is not injected
@@ -939,6 +958,7 @@
       if (!accounts || accounts.length === 0) {
         metamaskStatus.textContent = "MetaMask status: No accounts found.";
         metamaskStatus.className = "status-text error";
+        setConnectionUi(false);
         return;
       }
 
@@ -946,6 +966,7 @@
       metamaskStatus.textContent = "MetaMask status: Connected as " + connectedAddress;
       metamaskStatus.className = "status-text success";
       recipientInput.value = connectedAddress;
+      setConnectionUi(true);
 
       const chainId = await window.ethereum.request({ method: "eth_chainId" });
       console.log("Connected chainId:", chainId);
@@ -957,13 +978,12 @@
             metamaskStatus.textContent =
               "MetaMask status: Connected as " + connectedAddress;
             metamaskStatus.className = "status-text success";
+            setConnectionUi(true);
             if (!recipientInput.value) {
               recipientInput.value = connectedAddress;
             }
           } else {
-            connectedAddress = null;
-            metamaskStatus.textContent = "MetaMask status: Disconnected.";
-            metamaskStatus.className = "status-text";
+            disconnectMetaMask();
           }
         });
 
@@ -975,6 +995,7 @@
       console.error(err);
       metamaskStatus.textContent = "MetaMask status: Error - " + (err.message || err);
       metamaskStatus.className = "status-text error";
+      setConnectionUi(false);
     } finally {
       setButtonLoading(connectBtn, false, "Connect MetaMask");
     }
@@ -1268,11 +1289,15 @@
   }
 
   connectBtn.addEventListener("click", connectMetaMask);
+  if (disconnectBtn) disconnectBtn.addEventListener("click", disconnectMetaMask); // NEW
   importBtn.addEventListener("click", addTokenToMetaMask);
   associateBtn.addEventListener("click", associateTokenViaMetaMask);
   requestBtn.addEventListener("click", requestFaucet);
   sendBtn.addEventListener("click", sendToken);
-</script>
+
+  // Optional: reflect initial UI state
+  setConnectionUi(false);
+  </script>
 
 </body>
 </html>
